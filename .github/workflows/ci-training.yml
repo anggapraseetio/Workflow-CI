@@ -2,7 +2,7 @@ name: MLflow CI Training
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'MLProject/**'
 
