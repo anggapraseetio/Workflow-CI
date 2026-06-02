@@ -1,0 +1,15 @@
+name: breast-cancer-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - mlflow
+    - dagshub
+    - scikit-learn
+    - pandas
+    - joblib
+    - matplotlib
+    - seaborn

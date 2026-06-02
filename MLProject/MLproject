@@ -1,0 +1,8 @@
+name: Breast Cancer Classification Training
+
+conda_env: conda.yaml
+entry_points:
+  main:
+    parameters:
+      data_path: {type: string, default: "dataset_preprocessing"}
+    command: "python modelling.py"
