@@ -24,6 +24,8 @@ jobs:
           pip install mlflow scikit-learn joblib matplotlib seaborn
 
       - name: Run MLflow Project
+        env:
+          MLFLOW_ALLOW_FILE_STORE: "true"
         run: |
           cd MLProject
           mlflow run . --env-manager=local
