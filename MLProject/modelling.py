@@ -34,7 +34,8 @@ except Exception as e:
     sys.exit(1)
 
 # ================== MLFLOW TRAINING ==================
-
+mlflow.set_tracking_uri("file:./mlruns")
+mlflow.set_experiment("CI-Training")
 with mlflow.start_run(run_name="CI_RandomForest_Tuning"):
     
     param_grid = {
