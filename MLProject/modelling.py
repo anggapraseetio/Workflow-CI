@@ -14,13 +14,9 @@ os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Breast-Cancer-CI-Training")
 
-# Ambil active run (MLflow Project akan menangani ini)
+# TIDAK PERLU start_run() lagi karena MLflow Project sudah menanganinya
 run = mlflow.active_run()
-if run:
-    print(f"Run aktif: {run.info.run_id}")
-else:
-    print("Tidak ada active run, membuat run baru...")
-    mlflow.start_run()
+print(f"✅ Run aktif: {run.info.run_id if run else 'None'}")
 
 # ================== LOAD DATA ==================
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -56,11 +52,8 @@ param_grid = {
 
 rf = RandomForestClassifier(random_state=42, n_jobs=-1)
 
-grid_search = GridSearchCV(
-    rf, param_grid, cv=3, scoring='f1_weighted', n_jobs=-1
-)
-
 print("Training model dengan GridSearchCV...")
+grid_search = GridSearchCV(rf, param_grid, cv=3, scoring='f1_weighted', n_jobs=-1)
 grid_search.fit(X_train, y_train)
 
 best_model = grid_search.best_estimator_
@@ -99,5 +92,5 @@ plt.close()
 mlflow.log_artifact("confusion_matrix.png")
 
 print("🎉 Training CI berhasil!")
-print(f"Best Params: {grid_search.best_params_}")
+print(f"Best Params : {grid_search.best_params_}")
 print(f"Best F1 Score: {metrics['f1_score']:.4f}")
