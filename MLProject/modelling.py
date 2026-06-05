@@ -18,8 +18,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 mlruns_path = os.path.join(script_dir, "..", "mlruns")
 mlruns_path = os.path.abspath(mlruns_path)
 
-os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
-mlflow.set_tracking_uri("file:" + mlruns_path)
 
 print("🚀 Mulai training...")
 print(f"📁 MLflow tracking URI: file:{mlruns_path}")
