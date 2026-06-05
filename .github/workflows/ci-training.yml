@@ -12,55 +12,81 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ─────────────────────────────────────────
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # ─────────────────────────────────────────
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
+      # ─────────────────────────────────────────
       - name: Install Dependencies
         run: |
-          pip install "mlflow[extras]" scikit-learn joblib matplotlib seaborn pandas
+          pip install "mlflow[extras]" scikit-learn joblib \
+                      matplotlib seaborn pandas
 
+      # ─────────────────────────────────────────
+      # mlruns akan dibuat di ROOT repo karena modelling.py
+      # menulis ke ../mlruns relatif terhadap folder MLProject
       - name: Run MLflow Project
         working-directory: ./MLProject
         env:
-          MLFLOW_TRACKING_URI: file:./mlruns
+          MLFLOW_TRACKING_URI: "file:../mlruns"
           MLFLOW_ALLOW_FILE_STORE: "true"
         run: mlflow run . --env-manager=local
 
+      # ─────────────────────────────────────────
+      # Verifikasi mlruns tersimpan di root sebelum lanjut
+      - name: Verify mlruns exists
+        run: |
+          echo "📂 Struktur mlruns:"
+          find mlruns -type f | head -30
+          echo ""
+          echo "📂 Lokasi MLmodel:"
+          find mlruns -name "MLmodel"
+
+      # ─────────────────────────────────────────
       - name: Upload MLflow Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-runs
-          path: MLProject/mlruns/
+          path: mlruns/
 
-            # ================= DOCKER BUILD & PUSH =================
+      # ─────────────────────────────────────────
+      # Docker build dijalankan dari ROOT repo
+      # agar `find mlruns` bisa menemukan model
       - name: Build & Push Docker Image
         if: success()
-        working-directory: ./MLProject
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          echo "🔍 Mencari model path..."
-          MODEL_PATH=$(find mlruns -type d -name "model" | head -n 1)
+          echo "🔍 Mencari model path di mlruns..."
+
+          # Cari berdasarkan file MLmodel — lebih akurat daripada cari folder bernama "model"
+          MODEL_PATH=$(find mlruns -name "MLmodel" | head -n 1 | xargs -I{} dirname {})
           echo "Model path: $MODEL_PATH"
-          
+
           if [ -z "$MODEL_PATH" ]; then
-            echo "❌ Model path tidak ditemukan! Training mungkin gagal."
+            echo "❌ Model path tidak ditemukan!"
+            echo ""
+            echo "Debug — isi mlruns:"
+            find mlruns -type d | head -30
             exit 1
           fi
-          
-          echo "🏗️ Building Docker image..."
-          mlflow models build-docker -m "$MODEL_PATH" -n $DOCKER_USERNAME/breast-cancer-model
-          
+
+          echo "🏗️  Building Docker image..."
+          mlflow models build-docker \
+            -m "$MODEL_PATH" \
+            -n "$DOCKER_USERNAME/breast-cancer-model"
+
           echo "🔑 Login Docker Hub..."
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          
+
           echo "📤 Push Docker image..."
-          docker push $DOCKER_USERNAME/breast-cancer-model:latest
-          
-          echo "✅ Docker berhasil di-push!"
+          docker push "$DOCKER_USERNAME/breast-cancer-model:latest"
+
+          echo "✅ Docker image berhasil di-push ke Docker Hub!"
