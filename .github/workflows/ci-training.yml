@@ -50,17 +50,17 @@ jobs:
           echo "Model path: $MODEL_PATH"
           
           if [ -z "$MODEL_PATH" ]; then
-            echo "❌ Model path tidak ditemukan!"
+            echo "❌ Model path tidak ditemukan! Training mungkin gagal."
             exit 1
           fi
           
           echo "🏗️ Building Docker image..."
           mlflow models build-docker -m "$MODEL_PATH" -n $DOCKER_USERNAME/breast-cancer-model
           
-          echo "🔑 Login to Docker Hub..."
+          echo "🔑 Login Docker Hub..."
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
           
-          echo "📤 Pushing Docker image..."
+          echo "📤 Push Docker image..."
           docker push $DOCKER_USERNAME/breast-cancer-model:latest
           
-          echo "✅ Docker image berhasil di-push!"
+          echo "✅ Docker berhasil di-push!"
