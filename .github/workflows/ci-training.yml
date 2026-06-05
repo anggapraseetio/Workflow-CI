@@ -12,16 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: Install MLflow
-        run: pip install mlflow[extras] scikit-learn joblib matplotlib seaborn
 
       - name: Install Dependencies
         run: |
@@ -32,16 +29,15 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: file:./mlruns
           MLFLOW_ALLOW_FILE_STORE: "true"
-        run: |
-          mlflow run . --env-manager=local
+        run: mlflow run . --env-manager=local
 
-      - name: Upload mlruns Artifact
+      - name: Upload MLflow Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-runs
           path: MLProject/mlruns/
 
-      # ================= DOCKER (Hanya jika modelling berhasil) =================
+      # ================= DOCKER BUILD & PUSH =================
       - name: Build & Push Docker Image
         if: success()
         working-directory: ./MLProject
@@ -49,13 +45,17 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          # Cari model path
+          echo "🔍 Mencari model path..."
           MODEL_PATH=$(find mlruns -type d -name "model" | head -n 1)
           echo "Model path: $MODEL_PATH"
           
-          # Build Docker
-          mlflow models build-docker -m "$MODEL_PATH" -n ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model --enable-mlserver
+          echo "🏗️ Building Docker image..."
+          mlflow models build-docker -m "$MODEL_PATH" -n $DOCKER_USERNAME/breast-cancer-model --enable-mlserver
           
-          # Login & Push
+          echo "🔑 Login to Docker Hub..."
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          docker push ${{ secrets.DOCKER_USERNAME }}/breast-cancer-model:latest
+          
+          echo "📤 Pushing Docker image..."
+          docker push $DOCKER_USERNAME/breast-cancer-model:latest
+          
+          echo "✅ Docker image berhasil di-push!"

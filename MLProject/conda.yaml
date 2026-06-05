@@ -1,6 +1,7 @@
 name: mlflow-env
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.10
   - pip
@@ -10,3 +11,4 @@ dependencies:
       - joblib
       - matplotlib
       - seaborn
+      - pandas
