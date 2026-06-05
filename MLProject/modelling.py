@@ -13,11 +13,14 @@ import seaborn as sns
 os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 mlflow.set_tracking_uri("file:./mlruns")
 
-# JANGAN set_experiment lagi di sini (MLflow Project sudah handle)
-# Kita pakai active run yang sudah dibuat oleh MLflow run
+# Ambil Run ID dari environment variable yang diset oleh MLflow Project
+run_id = os.environ.get("MLFLOW_RUN_ID")
+print(f"✅ MLFLOW_RUN_ID dari env: {run_id}")
 
-run = mlflow.active_run()
-print(f"✅ Run aktif: {run.info.run_id if run else 'None'}")
+if not run_id:
+    print("⚠️ Tidak menemukan MLFLOW_RUN_ID, membuat run baru...")
+    mlflow.start_run()
+    run_id = mlflow.active_run().info.run_id
 
 # ================== LOAD DATA ==================
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,11 +28,11 @@ data_path = os.path.join(script_dir, "dataset_preprocessing")
 
 print(f"Current working directory: {os.getcwd()}")
 print(f"Script directory: {script_dir}")
-print(f"Mencoba load data dari: {data_path}")
+print(f"Load data dari: {data_path}")
 
 if not os.path.exists(data_path):
     print(f"❌ Folder dataset_preprocessing tidak ditemukan!")
-    print("Isi folder script:", os.listdir(script_dir))
+    print("Isi folder:", os.listdir(script_dir))
     sys.exit(1)
 
 try:
@@ -38,8 +41,6 @@ try:
     y_train = joblib.load(os.path.join(data_path, "y_train.pkl"))
     y_test = joblib.load(os.path.join(data_path, "y_test.pkl"))
     print("✅ Data berhasil dimuat!")
-    print(f"   X_train shape: {X_train.shape}")
-    print(f"   X_test shape : {X_test.shape}")
 except Exception as e:
     print(f"❌ Gagal load data: {e}")
     sys.exit(1)
@@ -52,7 +53,6 @@ param_grid = {
 }
 
 rf = RandomForestClassifier(random_state=42, n_jobs=-1)
-
 print("Training model dengan GridSearchCV...")
 grid_search = GridSearchCV(rf, param_grid, cv=3, scoring='f1_weighted', n_jobs=-1)
 grid_search.fit(X_train, y_train)
@@ -74,8 +74,8 @@ try:
 except:
     metrics["roc_auc"] = 0.0
 
-# ================== LOGGING (Manual Run Context) ==================
-with mlflow.start_run(run_id=run.info.run_id, nested=True):
+# ================== LOGGING ==================
+with mlflow.start_run(run_id=run_id, nested=True):
     mlflow.log_params(grid_search.best_params_)
     
     for k, v in metrics.items():
@@ -83,7 +83,7 @@ with mlflow.start_run(run_id=run.info.run_id, nested=True):
 
     mlflow.sklearn.log_model(best_model, "model")
 
-    # ================== ARTIFACT ==================
+    # Confusion Matrix Artifact
     cm = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
