@@ -37,7 +37,7 @@ jobs:
           name: mlflow-runs
           path: MLProject/mlruns/
 
-      # ================= DOCKER BUILD & PUSH =================
+            # ================= DOCKER BUILD & PUSH =================
       - name: Build & Push Docker Image
         if: success()
         working-directory: ./MLProject
@@ -49,8 +49,13 @@ jobs:
           MODEL_PATH=$(find mlruns -type d -name "model" | head -n 1)
           echo "Model path: $MODEL_PATH"
           
+          if [ -z "$MODEL_PATH" ]; then
+            echo "❌ Model path tidak ditemukan!"
+            exit 1
+          fi
+          
           echo "🏗️ Building Docker image..."
-          mlflow models build-docker -m "$MODEL_PATH" -n $DOCKER_USERNAME/breast-cancer-model --enable-mlserver
+          mlflow models build-docker -m "$MODEL_PATH" -n $DOCKER_USERNAME/breast-cancer-model
           
           echo "🔑 Login to Docker Hub..."
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
