@@ -12,9 +12,10 @@ import seaborn as sns
 # ================== SETUP MLFLOW ==================
 os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 mlflow.set_tracking_uri("file:./mlruns")
-mlflow.set_experiment("Breast-Cancer-CI-Training")
 
-# TIDAK PERLU start_run() lagi karena MLflow Project sudah menanganinya
+# JANGAN set_experiment lagi di sini (MLflow Project sudah handle)
+# Kita pakai active run yang sudah dibuat oleh MLflow run
+
 run = mlflow.active_run()
 print(f"✅ Run aktif: {run.info.run_id if run else 'None'}")
 
@@ -73,23 +74,24 @@ try:
 except:
     metrics["roc_auc"] = 0.0
 
-# ================== LOGGING ==================
-mlflow.log_params(grid_search.best_params_)
+# ================== LOGGING (Manual Run Context) ==================
+with mlflow.start_run(run_id=run.info.run_id, nested=True):
+    mlflow.log_params(grid_search.best_params_)
+    
+    for k, v in metrics.items():
+        mlflow.log_metric(k, v)
 
-for k, v in metrics.items():
-    mlflow.log_metric(k, v)
+    mlflow.sklearn.log_model(best_model, "model")
 
-mlflow.sklearn.log_model(best_model, "model")
+    # ================== ARTIFACT ==================
+    cm = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.savefig("confusion_matrix.png")
+    plt.close()
 
-# ================== ARTIFACT ==================
-cm = confusion_matrix(y_test, y_pred)
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.savefig("confusion_matrix.png")
-plt.close()
-
-mlflow.log_artifact("confusion_matrix.png")
+    mlflow.log_artifact("confusion_matrix.png")
 
 print("🎉 Training CI berhasil!")
 print(f"Best Params : {grid_search.best_params_}")
