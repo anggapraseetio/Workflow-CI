@@ -23,12 +23,17 @@ jobs:
       - name: Install MLflow
         run: pip install mlflow[extras] scikit-learn joblib matplotlib seaborn
 
+      - name: Install Dependencies
+        run: |
+          pip install "mlflow[extras]" scikit-learn joblib matplotlib seaborn pandas
+
       - name: Run MLflow Project
         working-directory: ./MLProject
         env:
           MLFLOW_TRACKING_URI: file:./mlruns
           MLFLOW_ALLOW_FILE_STORE: "true"
-        run: mlflow run . --env-manager=local --no-conda
+        run: |
+          mlflow run . --env-manager=local
 
       - name: Upload mlruns Artifact
         uses: actions/upload-artifact@v4
